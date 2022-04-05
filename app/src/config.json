@@ -1,0 +1,7 @@
+{
+  "input_shape_image": {
+    "height": 456,
+    "width": 456
+  },
+  "amount_image_in_answer": 3
+}
