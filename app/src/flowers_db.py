@@ -1,7 +1,6 @@
 
 import gridfs
-
-# conn = MongoClient(os.environ['DB_URL'])
+import base64
 
 DB = "flowers"
 DB_COLLECTION_CLASSES = "flower_classes"
@@ -12,9 +11,10 @@ def get_img_class(group_num, group_prob, conn, num_img_out=3):
     fs = gridfs.GridFS(conn[DB])
     answer = []
     for i in range(len(group_num)):
-        img_list = []
-        for img in conn[DB][DB_COLLECTION].find({'group': str(group_num[i])}).limit(num_img_out):
-            img_list.append(fs.get(img['imageID']).read())
+        img_list = {}
+        for j, img in enumerate(conn[DB][DB_COLLECTION].find({'group': str(group_num[i])}).limit(num_img_out)):
+            img = fs.get(img['imageID']).read()
+            img_list[j] = base64.encodebytes(img).decode('utf-8')
         name = conn[DB][DB_COLLECTION_CLASSES].find_one({'number': str(group_num[i])})
         answer_dict = {
             'name': name['name'],

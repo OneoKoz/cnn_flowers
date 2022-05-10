@@ -20,7 +20,10 @@ class Model:
     def make_predict(self, file: File):
         img = self.get_correct_format_img(file)
         answer_dict = torch.topk(self.model(img), k=5)
-        answer_prob = answer_dict.values[0].tolist()
+        m = torch.nn.Softmax(dim=0)
+
+        answer_prob = (m(answer_dict.values[0])*100).tolist()
+        answer_prob = list(np.around(np.array(answer_prob),4))
         answer_group = list(np.array(answer_dict.indices)[0] + 1)
         return answer_group, answer_prob
 

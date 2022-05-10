@@ -1,8 +1,12 @@
-from fastapi.responses import HTMLResponse
-from fastapi import FastAPI, File
+from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.encoders import jsonable_encoder
+
+from fastapi import FastAPI, Body, File
 from pydantic import BaseModel
 from typing import List
 from pymongo import MongoClient
+import json
 import src.flowers_db as fldb
 import os
 from urllib.parse import quote_plus
@@ -10,6 +14,13 @@ from urllib.parse import quote_plus
 from src.model import Model
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 model = Model()
 mongo_client = None
 
@@ -40,44 +51,36 @@ class ComicIssue(BaseModel):
     publisher_name: str
 
 
-@app.get("/")
-async def main():
+# @app.get("/find_flower")
+# async def main():
+#     get_client()
+#     content = """
+# <body>
+# <form action="/file/" enctype="multipart/form-data" method="post">
+# <input name="file" type="file">
+# <input type="submit">
+# </form>
+# </body>
+#     """
+#     return HTMLResponse(content=content)
+
+@app.post("/find_flower")
+async def create_file(img: bytes = File(...)):
     get_client()
-    content = """
-<body>
-<form action="/file/" enctype="multipart/form-data" method="post">
-<input name="file" type="file">
-<input type="submit">
-</form>
-</body>
-    """
-    return HTMLResponse(content=content)
-
-
-@app.get('/comics/{title}/{issue_number}', response_model=List[ComicIssue])
-async def get_comic_issues(title: str, issue_number: str): 
-    criteria = {'series_name': title, 'number': issue_number}
-    client = get_client()
-    db = client.farmdemo
-    issues = db.issues.find(criteria)
-    data = list()
-    for issue in issues:
-        data.append(ComicIssue(**issue))
-    return data
-
-@app.post("/file/")
-async def create_file(file: bytes = File(...)):
-    group_num, group_prob = model.make_predict(file)
-    answer = fldb.get_img_class(group_num, group_prob, conn=mongo_client, num_img_out=model.config['amount_image_in_answer'])
-    content = """
-    <body>
-    <form action="/" method="get">
-    <h9>
-    """ + str(answer) + """
-    </h9>
-    <input type="submit">
-    </form>
-    </body>
-        """
-    return HTMLResponse(content=content)
-
+    group_num, group_prob = model.make_predict(img)
+    answer = fldb.get_img_class(group_num, group_prob, conn=mongo_client,
+                                num_img_out=model.config['amount_image_in_answer'])
+    json_answer = json.dumps(answer)
+    return JSONResponse(content=json_answer)
+    # content = """
+    # <body>
+    # <form action="/" method="get">
+    # <h9>
+    # """ + str(answer) + """
+    # </h9>
+    # <input type="submit">
+    # </form>
+    # </body>
+    #     """
+    # return HTMLResponse(content=content)
+    # return JSONResponse(answer)
